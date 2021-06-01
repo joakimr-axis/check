@@ -52,6 +52,7 @@ int main (void)
      */
     srunner_set_log (sr, "test_mem_leak.log");
     srunner_set_xml (sr, "test_mem_leak.xml");
+    srunner_set_junit_xml (sr, "test_mem_leak.junit");
     srunner_set_tap (sr, "test_mem_leak.tap");
     srunner_run_all(sr, CK_NORMAL);
     srunner_free(sr);
@@ -76,6 +77,7 @@ int main (void)
      */
     srunner_set_log (sr, "test_mem_leak.log");
     srunner_set_xml (sr, "test_mem_leak.xml");
+    srunner_set_junit_xml (sr, "test_mem_leak.junit");
     srunner_set_tap (sr, "test_mem_leak.tap");
 
     srunner_run_all(sr, CK_NORMAL);

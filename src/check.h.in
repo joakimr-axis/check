@@ -1005,7 +1005,7 @@ do { \
 /**
  * Check that a single precision floating point number
  * is "Not a Number" (NaN)
- *  
+ *
  * If X is not NaN, the test fails.
  *
  * @param X floating point number (float) to be checked
@@ -1212,7 +1212,7 @@ do { \
 /**
  * Check that a double precision floating point number
  * is "Not a Number" (NaN)
- *  
+ *
  * If X is not NaN, the test fails.
  *
  * @param X floating point number (double) to be checked
@@ -1237,7 +1237,7 @@ do { \
  */
 #define ck_assert_double_nonnan(X) _ck_assert_floating_nonnan(X, double, "")
 
-/** 
+/**
  * Check two double precision floating point numbers to determine if X == Y.
  *
  * Note that the usefulness of this assertion is very limited. If you
@@ -1419,7 +1419,7 @@ do { \
 /**
  * Check that a double precision floating point number
  * is "Not a Number" (NaN)
- *  
+ *
  * If X is not NaN, the test fails.
  *
  * @param X floating point number (long double) to be checked
@@ -1571,7 +1571,7 @@ do { \
 #define ck_assert_str_ge(X, Y) _ck_assert_str(X, >=, Y, 0, 0)
 
 /**
- * Check two strings to determine if 0==strcmp(X,Y) or if both are undefined 
+ * Check two strings to determine if 0==strcmp(X,Y) or if both are undefined
  *
  * If both X and Y are NULL the test passes. However, if only one is NULL
  * the test fails.
@@ -2005,7 +2005,7 @@ CK_DLL_EXP void CK_EXPORT srunner_run_all(SRunner * sr,
  * then the function will fallback to using the environment variables
  * CK_RUN_SUITE and CK_RUN_CASE respectively in order to select the
  * suite/cases.
- * 
+ *
  * Similarly if the CK_INCLUDE_TAGS and/or CK_EXCLUDE_TAGS environment
  * variables are defined then these will further filter the test cases
  * (see srunner_run_tagged, below).
@@ -2220,6 +2220,46 @@ CK_DLL_EXP int CK_EXPORT srunner_has_xml(SRunner * sr);
  * @since 0.9.1
  */
 CK_DLL_EXP const char *CK_EXPORT srunner_xml_fname(SRunner * sr);
+
+/**
+ * Set the suite runner to output the result in JUnit XML format to the
+ * given file.
+ *
+ * Note: JUnit XML file setting is an initialize only operation -- it should
+ * be done immediately after SRunner creation, and the JUnit XML file can't be
+ * changed after being set.
+ *
+ * This setting does not conflict with the other log output types;
+ * all logging types can occur concurrently if configured.
+ *
+ * @param sr suite runner to log results of in JUnit XML format
+ * @param fname file name to output JUnit XML results to
+ *
+ * @since 0.15.3
+*/
+CK_DLL_EXP void CK_EXPORT srunner_set_junit_xml(SRunner * sr, const char *fname);
+
+/**
+ * Checks if the suite runner is assigned a file for JUnit XML output.
+ *
+ * @param sr suite runner to check
+ *
+ * @return 1 iff the suite runner currently is configured to output
+ *         in JUnit XML format; 0 otherwise
+ *
+ * @since 0.15.3
+ */
+CK_DLL_EXP int CK_EXPORT srunner_has_junit_xml(SRunner * sr);
+
+/**
+ * Retrieves the name of the currently assigned file
+ * for JUnit XML output, if any exists.
+ *
+ * @return the name of the JUnit XML file, or NULL if none is configured
+ *
+ * @since 0.15.3
+ */
+CK_DLL_EXP const char *CK_EXPORT srunner_junit_xml_fname(SRunner * sr);
 
 /**
  * Set the suite runner to output the result in TAP format to the

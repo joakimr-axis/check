@@ -135,7 +135,22 @@ START_TEST(test_set_xml)
   ck_assert_msg (srunner_has_xml (sr), "SRunner not logging XML");
   ck_assert_msg (strcmp(srunner_xml_fname(sr), "test_log.xml") == 0,
 	       "Bad file name returned");
-         
+
+  srunner_free(sr);
+}
+END_TEST
+
+START_TEST(test_set_junit_xml)
+{
+  Suite *s = suite_create("Suite");
+  SRunner *sr = srunner_create(s);
+
+  srunner_set_xml (sr, "test_log.junit");
+
+  ck_assert_msg (srunner_has_junit_xml (sr), "SRunner not logging JUnit XML");
+  ck_assert_msg (strcmp(srunner_xml_fname(sr), "test_log.junit") == 0,
+	       "Bad file name returned");
+
   srunner_free(sr);
 }
 END_TEST
@@ -167,7 +182,7 @@ START_TEST(test_set_xml_env)
   /* restore old environment */
   ck_assert_msg(restore_env("CK_XML_LOG_FILE_NAME", old_val) == 0,
               "Failed to restore environment variable");
-  
+
   srunner_free(sr);
 }
 END_TEST
@@ -180,7 +195,7 @@ START_TEST(test_no_set_xml)
 
   ck_assert_msg (!srunner_has_xml (sr), "SRunner not logging XML");
   ck_assert_msg (srunner_xml_fname(sr) == NULL, "Bad file name returned");
-  
+
   srunner_free(sr);
 }
 END_TEST
@@ -195,7 +210,67 @@ START_TEST(test_double_set_xml)
 
   ck_assert_msg(strcmp(srunner_xml_fname(sr), "test_log.xml") == 0,
 	      "XML Log file is initialize only and shouldn't be changeable once set");
-  
+
+  srunner_free(sr);
+}
+END_TEST
+
+#if HAVE_DECL_SETENV
+/* Test enabling JUnit XML logging via environment variable */
+START_TEST(test_set_junit_xml_env)
+{
+  const char *old_val;
+  Suite *s = suite_create("Suite");
+  SRunner *sr = srunner_create(s);
+
+  /* check that setting JUnit XML log file via environment variable works */
+  ck_assert_msg(save_set_env("CK_JUNIT_XML_LOG_FILE_NAME", "test_log.junit", &old_val) == 0,
+              "Failed to set environment variable");
+
+  ck_assert_msg (srunner_has_junit_xml (sr), "SRunner not logging JUnit XML");
+  ck_assert_msg (strcmp(srunner_junit_xml_fname(sr), "test_log.junit") == 0,
+	       "Bad file name returned");
+
+  /* check that explicit call to srunner_set_xml()
+     overrides environment variable */
+  srunner_set_junit_xml (sr, "test2_log.junit");
+
+  ck_assert_msg (srunner_has_junit_xml (sr), "SRunner not logging JUnit XML");
+  ck_assert_msg (strcmp(srunner_junit_xml_fname(sr), "test2_log.junit") == 0,
+	       "Bad file name returned");
+
+  /* restore old environment */
+  ck_assert_msg(restore_env("CK_JUNIT_XML_LOG_FILE_NAME", old_val) == 0,
+              "Failed to restore environment variable");
+
+  srunner_free(sr);
+}
+END_TEST
+#endif /* HAVE_DECL_SETENV */
+
+START_TEST(test_no_set_junit_xml)
+{
+  Suite *s = suite_create("Suite");
+  SRunner *sr = srunner_create(s);
+
+  ck_assert_msg (!srunner_has_junit_xml (sr), "SRunner not logging JUnit XML");
+  ck_assert_msg (srunner_junit_xml_fname(sr) == NULL, "Bad file name returned");
+
+  srunner_free(sr);
+}
+END_TEST
+
+START_TEST(test_double_set_junit_xml)
+{
+  Suite *s = suite_create("Suite");
+  SRunner *sr = srunner_create(s);
+
+  srunner_set_junit_xml (sr, "test_log.xml");
+  srunner_set_junit_xml (sr, "test2_log.xml");
+
+  ck_assert_msg(strcmp(srunner_junit_xml_fname(sr), "test_log.xml") == 0,
+	      "JUnit XML Log file is initialize only and shouldn't be changeable once set");
+
   srunner_free(sr);
 }
 END_TEST
@@ -279,11 +354,12 @@ Suite *make_log_suite(void)
 {
 
   Suite *s;
-  TCase *tc_core, *tc_core_xml, *tc_core_tap;
+  TCase *tc_core, *tc_core_xml, *tc_core_junit_xml, *tc_core_tap;
 
   s = suite_create("Log");
   tc_core = tcase_create("Core");
   tc_core_xml = tcase_create("Core XML");
+  tc_core_junit_xml = tcase_create("Core JUnit XML");
   tc_core_tap = tcase_create("Core TAP");
 
   suite_add_tcase(s, tc_core);
@@ -301,6 +377,14 @@ Suite *make_log_suite(void)
 #endif /* HAVE_DECL_SETENV */
   tcase_add_test(tc_core_xml, test_no_set_xml);
   tcase_add_test(tc_core_xml, test_double_set_xml);
+
+  suite_add_tcase(s, tc_core_junit_xml);
+  tcase_add_test(tc_core_junit_xml, test_set_junit_xml);
+#if HAVE_DECL_SETENV
+  tcase_add_test(tc_core_junit_xml, test_set_junit_xml_env);
+#endif /* HAVE_DECL_SETENV */
+  tcase_add_test(tc_core_junit_xml, test_no_set_junit_xml);
+  tcase_add_test(tc_core_junit_xml, test_double_set_junit_xml);
 
   suite_add_tcase(s, tc_core_tap);
   tcase_add_test(tc_core_tap, test_set_tap);

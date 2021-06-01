@@ -60,6 +60,8 @@ Contributors:
         (autoconf patch for 64-bit safe code)
     Frederic Peters
         (XML output)
+    Glenn Washburn
+        (JUnit XML output)
     Dietmar Petras
         (bug fixes)
     Rick Poyner

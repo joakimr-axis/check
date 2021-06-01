@@ -87,6 +87,29 @@ const char *srunner_xml_fname(SRunner * sr)
     return getenv("CK_XML_LOG_FILE_NAME");
 }
 
+void srunner_set_junit_xml(SRunner * sr, const char *fname)
+{
+    if(sr->junit_xml_fname)
+        return;
+    sr->junit_xml_fname = fname;
+}
+
+int srunner_has_junit_xml(SRunner * sr)
+{
+    return srunner_junit_xml_fname(sr) != NULL;
+}
+
+const char *srunner_junit_xml_fname(SRunner * sr)
+{
+    /* check if XML log filename have been set explicitly */
+    if(sr->junit_xml_fname != NULL)
+    {
+        return sr->junit_xml_fname;
+    }
+
+    return getenv("CK_JUNIT_XML_LOG_FILE_NAME");
+}
+
 void srunner_set_tap(SRunner * sr, const char *fname)
 {
     if(sr->tap_fname)
@@ -259,7 +282,6 @@ void lfile_lfun(SRunner * sr, FILE * file,
                     __LINE__);
     }
 
-
 }
 
 void xml_lfun(SRunner * sr CK_ATTRIBUTE_UNUSED, FILE * file,
@@ -334,6 +356,137 @@ void xml_lfun(SRunner * sr CK_ATTRIBUTE_UNUSED, FILE * file,
             eprintf("Bad event type received in xml_lfun", __FILE__,
                     __LINE__);
     }
+
+}
+
+void junit_xml_lfun(SRunner * sr CK_ATTRIBUTE_UNUSED, FILE * file,
+              enum print_output printmode CK_ATTRIBUTE_UNUSED, void *obj,
+              enum cl_event evt)
+{
+    TestResult *tr;
+    Suite *s;
+    static struct timespec ts_start = { 0, 0 };
+    static char t[sizeof "yyyy-mm-dd hh:mm:ss"] = { 0 };
+
+    if(t[0] == 0)
+    {
+        struct timeval inittv;
+        struct tm now;
+
+        gettimeofday(&inittv, NULL);
+        clock_gettime(check_get_clockid(), &ts_start);
+        if(localtime_r((const time_t *)&(inittv.tv_sec), &now) != NULL)
+        {
+            strftime(t, sizeof("yyyy-mm-dd hh:mm:ss"), "%Y-%m-%d %H:%M:%S",
+                     &now);
+        }
+    }
+
+    switch (evt)
+    {
+        case CLINITLOG_SR:
+            fprintf(file,
+            "<?xml version=\"1.0\"?>\n"
+            "<?xml-stylesheet type=\"text/xsl\" "
+            "href=\"http://check.sourceforge.net/xml/check_unittest.xslt\"?>\n"
+            "<testsuites xmlns=\"http://check.sourceforge.net/ns\">\n"
+            "  <datetime>%s</datetime>\n", t);
+            break;
+        case CLENDLOG_SR:
+        {
+            struct timespec ts_end = { 0, 0 };
+            unsigned long duration;
+
+            /* calculate time the test were running */
+            clock_gettime(check_get_clockid(), &ts_end);
+            duration = (unsigned long)DIFF_IN_USEC(ts_start, ts_end);
+            fprintf(file,
+            "  <duration>%lu.%06lu</duration>\n"
+            "</testsuites>\n",
+                    duration / US_PER_SEC, duration % US_PER_SEC);
+        }
+            break;
+        case CLSTART_SR:
+            break;
+        case CLSTART_S:
+            s = (Suite *)obj;
+            fprintf(file,
+            "  <suite>\n"
+            "    <title>");
+            fprint_xml_esc(file, s->name);
+            fprintf(file, "</title>\n");
+            break;
+        case CLEND_SR:
+            break;
+        case CLEND_S:
+            fprintf(file, "  </suite>\n");
+            break;
+        case CLSTART_T:
+            break;
+        case CLEND_T:
+            tr = (TestResult *)obj;
+            tr_xmlprint(file, tr, CK_VERBOSE);
+            break;
+        default:
+            eprintf("Bad event type received in xml_lfun", __FILE__,
+                    __LINE__);
+    }
+
+#if 0
+    /* JUnit xml files are of one suite, so we have to make multiple files here */
+    int len=strnlen(sr->junit_xml_fname, 256) + strnlen(s->name, 256) + strnlen(".xml", 4) + 2;
+    fname= (char *) emalloc(len);
+    snprintf(fname, len, "%s-%s.xml", sr->junit_xml_fname, s->name);
+    file=srunner_open_junit_xmlfile(fname);
+    free(fname);
+    if(file == NULL)
+        break;
+
+    /* We have to calculate our own per suite stats */
+    *trlst = *sr->resultlst;
+    list_front(trlst);
+    for (list_front(trlst); !list_at_end(trlst); list_advance(trlst)) {
+      /* Only update if the test result is from this suite */
+      tr = (TestResult *) list_val(trlst);
+      if(tr->tc->s == s)
+        stats_update(&ts, tr);
+    }
+
+    /* Write header with collected stats */
+    fprintf(file, "<?xml version=\"1.0\"?>\n");
+    fprintf(file, "<testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"%d\" time=\"%f\">\n",
+            s->name, ts.n_checked, ts.n_failed, ts.n_errors, TV_DIFFERENCE(s->starttime, s->endtime));
+
+    /* Move back to the front of the lsit and start outputting the test cases */
+    list_front(trlst);
+    for (list_front(trlst); !list_at_end(trlst); list_advance(trlst)) {
+      /* Only update if the test result is from this suite */
+      tr = (TestResult *) list_val(trlst);
+      if(tr->tc->s == s){
+        tr_junit_xmlprint(file, tr, tr_prev, CK_VERBOSE);
+        tr_prev=tr;
+      }
+    }
+
+    /* Output stdout and stderr */
+    fprintf(file, "  <system-out>\n");
+    fprintf(file, "    <![CDATA[]]>\n");
+    fprintf(file, "  </system-out>\n");
+
+    fprintf(file, "  <system-err>\n");
+    fprintf(file, "    <![CDATA[]]>\n");
+    fprintf(file, "  </system-err>\n");
+
+    fprintf(file, "</testsuite>\n");
+
+    fclose(file);
+    break;
+  case CLEND_T:
+    break;
+  default:
+    eprintf("Bad event type received in xml_lfun", __FILE__, __LINE__);
+  }
+#endif
 
 }
 
@@ -488,6 +641,17 @@ FILE *srunner_open_xmlfile(SRunner * sr)
     return f;
 }
 
+FILE *srunner_open_junit_xmlfile(SRunner * sr)
+{
+    FILE *f = NULL;
+
+    if(srunner_has_junit_xml(sr))
+    {
+        f = srunner_open_file(srunner_junit_xml_fname(sr));
+    }
+    return f;
+}
+
 FILE *srunner_open_tapfile(SRunner * sr)
 {
     FILE *f = NULL;
@@ -521,6 +685,11 @@ void srunner_init_logging(SRunner * sr, enum print_output print_mode)
     if(f)
     {
         srunner_register_lfun(sr, f, f != stdout, xml_lfun, print_mode);
+    }
+    f = srunner_open_junit_xmlfile(sr);
+    if(f)
+    {
+        srunner_register_lfun(sr, f, f != stdout, junit_xml_lfun, print_mode);
     }
     f = srunner_open_tapfile(sr);
     if(f)

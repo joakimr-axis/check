@@ -233,6 +233,76 @@ void tr_xmlprint(FILE * file, TestResult * tr,
     free(path_name);
 }
 
+void tr_junit_xmlprint(FILE * file, TestResult * tr,
+                 enum print_output print_mode CK_ATTRIBUTE_UNUSED)
+{
+    char result[10];
+    char *path_name = NULL;
+    char *file_name = NULL;
+    char *slash = NULL;
+
+    switch (tr->rtype)
+    {
+        case CK_PASS:
+            snprintf(result, sizeof(result), "%s", "success");
+            break;
+        case CK_FAILURE:
+            snprintf(result, sizeof(result), "%s", "failure");
+            break;
+        case CK_ERROR:
+            snprintf(result, sizeof(result), "%s", "error");
+            break;
+        case CK_TEST_RESULT_INVALID:
+        default:
+            abort();
+            break;
+    }
+
+    if(tr->file)
+    {
+        slash = strrchr(tr->file, '/');
+        if(slash == NULL)
+        {
+            slash = strrchr(tr->file, '\\');
+        }
+
+        if(slash == NULL)
+        {
+            path_name = strdup(".");
+            file_name = tr->file;
+        }
+        else
+        {
+            path_name = strdup(tr->file);
+            path_name[slash - tr->file] = 0;    /* Terminate the temporary string. */
+            file_name = slash + 1;
+        }
+    }
+
+#if 0
+    fprintf(file, "  <testcase name=\"%s:%s\" time=\"%f\">\n",
+            tr->tc->name, tr->tname, TV_DIFFERENCE(tv_prev, tr->time));
+    if(tr->rtype == CK_PASS){
+      ;
+    } else if(tr->rtype == CK_FAILURE){
+      fprintf(file, "    <failure type=\"%s\" message=\"%s\">\n", "", tr->msg);
+      fprintf(file, "      %s:%s:%d\n", tr->tc->name, tr->tname, tr->iter);
+      fprintf(file, "      %s:%d\n", file_name, tr->line);
+      fprintf(file, "      %s\n", tr->msg);
+      fprintf(file, "    </failure>\n");
+    } else if(tr->rtype == CK_ERROR){
+      fprintf(file, "    <error type=\"%s\" message=\"%s\">\n", "", tr->msg);
+      fprintf(file, "      %s:%s:%d\n", tr->tc->name, tr->tname, tr->iter);
+      fprintf(file, "      %s:%d\n", file_name, tr->line);
+      fprintf(file, "      %s\n", tr->msg);
+      fprintf(file, "    </error>\n");
+    }
+    fprintf(file, "  </testcase>\n");
+#endif
+
+    free(path_name);
+}
+
 enum print_output get_env_printmode(void)
 {
     char *env = getenv("CK_VERBOSITY");

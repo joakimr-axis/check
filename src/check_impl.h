@@ -116,18 +116,20 @@ typedef struct Log
 
 struct SRunner
 {
-    List *slst;                 /* List of Suite objects */
-    TestStats *stats;           /* Run statistics */
-    List *resultlst;            /* List of unit test results */
-    const char *log_fname;      /* name of log file */
-    const char *xml_fname;      /* name of xml output file */
-    const char *tap_fname;      /* name of tap output file */
-    List *loglst;               /* list of Log objects */
-    enum fork_status fstat;     /* controls if suites are forked or not
-                                   NOTE: Don't use this value directly,
-                                   instead use srunner_fork_status */
+    List *slst;                  /* List of Suite objects */
+    TestStats *stats;            /* Run statistics */
+    List *resultlst;             /* List of unit test results */
+    const char *log_fname;       /* name of log file */
+    const char *xml_fname;       /* name of xml output file */
+    const char *junit_xml_fname; /* name of JUnit xml output file */
+    const char *tap_fname;       /* name of tap output file */
+    List *loglst;                /* list of Log objects */
+    enum fork_status fstat;      /* controls if suites are forked or not
+                                    NOTE: Don't use this value directly,
+                                    instead use srunner_fork_status */
 };
 
+void stats_update(TestStats *, struct TestResult *);
 
 void set_fork_status(enum fork_status fstat);
 enum fork_status cur_fork_status(void);
